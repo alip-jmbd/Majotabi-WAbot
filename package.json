@@ -1,16 +1,21 @@
 {
   "name": "majotabi-wabot",
-  "version": "1.0.0",
-  "description": "High Performance WhatsApp Bot",
+  "version": "1.1.0",
+  "description": "WhatsApp Bot - NodeJS - Sqlite",
+  "author": "Lipp Majotabi",
   "main": "src/index.js",
   "type": "module",
   "scripts": {
     "start": "node src/index.js"
   },
   "dependencies": {
-    "@whiskeysockets/baileys": "^6.7.5",
+    "@whiskeysockets/baileys": "latest",
+    "axios": "^1.7.2",
     "better-sqlite3": "^11.0.0",
     "chalk": "^5.3.0",
-    "pino": "^9.0.0"
+    "formdata-node": "^6.0.3",
+    "node-fetch": "^3.3.2",
+    "pino": "^9.0.0",
+    "wa-sticker-formatter": "^4.4.4"
   }
 }

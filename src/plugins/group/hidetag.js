@@ -13,9 +13,17 @@ export default {
         const q = m.quoted ? m.quoted : null;
         const messageText = text || (q ? q.body : '') || 'Tag All';
 
-        await conn.sendMessage(m.chat, {
+        const payload = {
             text: messageText,
-            mentions: participants.map(a => a.id)
-        }, { quoted: m });
+            contextInfo: {
+                mentions: participants.map(a => a.id)
+            }
+        };
+
+        if (m.expiration) {
+            payload.contextInfo.expiration = m.expiration;
+        }
+
+        await conn.sendMessage(m.chat, payload);
     }
 };

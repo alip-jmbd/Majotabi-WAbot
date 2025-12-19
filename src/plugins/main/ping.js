@@ -9,6 +9,6 @@ export default {
         const old = performance.now();
         const latensi = (old - start).toFixed(3);
         
-        await m.reply(`*Pong!* ⚡\nLatensi: ${latensi}ms\nRAM: ${ram}MB`);
+        await m.reply(`*Pong!* 🪷\n> _Latency: ${latensi}ms_`);
     }
 };

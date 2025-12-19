@@ -1,23 +1,33 @@
-import os from 'os';
-
 export default {
     cmd: ['menu', 'help'],
     tags: ['main'],
-    run: async ({ conn, m, plugins, config, text }) => {
+    run: async ({ m, plugins, config, text }) => {
+        const start = performance.now();
+
         const date = new Date();
-        const hour = parseInt(date.toLocaleString("en-US", { timeZone: "Asia/Jakarta", hour: "numeric", hour12: false }));
+        const localeStringOptions = { timeZone: "Asia/Jakarta" };
+        
+        const day = date.toLocaleDateString("id-ID", { ...localeStringOptions, day: '2-digit' });
+        const month = date.toLocaleDateString("id-ID", { ...localeStringOptions, month: 'short' });
+        const year = date.toLocaleDateString("id-ID", { ...localeStringOptions, year: 'numeric' });
+        const time = date.toLocaleTimeString("id-ID", { ...localeStringOptions, hour: '2-digit', minute: '2-digit' });
+        const formattedDate = `${day} ${month} ${year}`;
+
+        const hour = parseInt(date.toLocaleString("en-US", { ...localeStringOptions, hour: "numeric", hour12: false }));
         let greeting = "Konbanwa";
         let emoji = "🌙";
-        if (hour >= 0 && hour < 11) { greeting = "Ohayouu"; emoji = "🌅"; }
+        if (hour >= 4 && hour < 11) { greeting = "Ohayou"; emoji = "🌅"; }
         else if (hour >= 11 && hour < 15) { greeting = "Konnichiwa"; emoji = "☀️"; }
-        else if (hour >= 15 && hour < 18) { greeting = "Konnichiwa"; emoji = "🌥️"; }
+        else if (hour >= 15 && hour < 18) { greeting = "Konnichiwa"; emoji = "⛅"; }
 
         const uptimeSeconds = process.uptime();
-        const days = Math.floor(uptimeSeconds / (3600 * 24));
-        const hours = Math.floor((uptimeSeconds % (3600 * 24)) / 3600);
-        const minutes = Math.floor((uptimeSeconds % 3600) / 60);
-        const seconds = Math.floor(uptimeSeconds % 60);
-        const uptimeStr = `${days}d ${hours}h ${minutes}m ${seconds}s`;
+        const d = Math.floor(uptimeSeconds / (3600 * 24));
+        const h = Math.floor((uptimeSeconds % (3600 * 24)) / 3600);
+        const min = Math.floor((uptimeSeconds % 3600) / 60);
+        const uptimeStr = `${d}d ${h}h ${min}m`;
+
+        const botName = config.botName.split(' - ')[0];
+        const more = String.fromCharCode(8206).repeat(4001);
 
         if (!text) {
             const categoryMap = {};
@@ -32,78 +42,98 @@ export default {
             let menuTree = "";
             categoryList.forEach((cat, index) => {
                 const isLast = index === categoryList.length - 1;
-                menuTree += `${isLast ? '└──' : '├──'} ${cat}\n`;
+                menuTree += `${isLast ? '└─' : '├─'} › ${cat}\n`;
             });
 
-            const mainText = `*${greeting},* @${m.sender.split('@')[0]} ${emoji}
-_Watashi wa ${config.botName.split(' - ')[0]} !_
-Berikut adalah semua kategori *MENU* ku ! 
+            const end = performance.now();
+            const latency = (end - start).toFixed(3);
+
+            const mainText = `*${greeting},* @${m.sender.split('@')[0]}-sama ${emoji}
+
+> _[ 🗓️${formattedDate} - 🕓${time} WIB ]_
+> _[ ⏳${uptimeStr} - ⚡${latency}ms ]_
+
+_Watashi wa *${botName}*_, WhatsApp bot by ${config.ownerName}.
+Berikut adalah semua kategori _\`Menu\`_ ku !
 
 \`📁 Feature\`
 ${menuTree}
-Ketik *!allmenu* untuk melihat semua.
+💡Ketik *!menu [kategori]* untuk melihat menu spesifik.
+🍀Contoh: *!menu main*
+🍄Ketik *!allmenu* untuk melihat semua perintah.
 
-> _か | ${config.botName} by ${config.ownerName} ☘️_`;
+> _${config.botName} by ${config.ownerName} ☘️_`;
 
-            await conn.sendMessage(m.chat, {
-                text: mainText,
+            await m.reply(mainText, {
+                mentions: [m.sender],
                 contextInfo: {
+                    expiration: m.expiration,
                     externalAdReply: {
                         title: `Uptime: ${uptimeStr}`,
                         body: `Mode: ${config.public ? 'Public' : 'Self'}`,
                         thumbnailUrl: config.thumbnail,
-                        sourceUrl: 'https://wa.me/' + config.ownerNumber,
+                        sourceUrl: config.siteUrl,
                         mediaType: 1,
                         renderLargerThumbnail: true
-                    },
-                    mentionedJid: [m.sender]
+                    }
                 }
-            }, { quoted: m });
+            });
 
         } else {
             const targetTag = text.toLowerCase();
-            const commands = [];
+            const commands = new Set();
             
             for (let [name, plugin] of plugins) {
                 if (plugin.tags && plugin.tags.includes(targetTag) && plugin.cmd) {
-                    plugin.cmd.forEach(c => commands.push(c));
+                    commands.add(plugin.cmd[0]);
                 }
             }
+            
+            const commandArray = Array.from(commands).sort();
 
-            if (commands.length === 0) {
+            if (commandArray.length === 0) {
                 return m.reply(`Kategori *${text}* tidak ditemukan atau kosong.`);
             }
 
             let cmdTree = "";
-            commands.sort().forEach((c, index) => {
-                const isLast = index === commands.length - 1;
-                cmdTree += `${isLast ? '└──' : '├──'} !${c}\n`;
+            commandArray.forEach((c, index) => {
+                const isLast = index === commandArray.length - 1;
+                cmdTree += `${isLast ? '└─' : '├─'} › !${c}\n`;
             });
 
+            const end = performance.now();
+            const latency = (end - start).toFixed(3);
             const catName = targetTag.charAt(0).toUpperCase() + targetTag.slice(1);
-            const subMenuText = `*${greeting},* @${m.sender.split('@')[0]} ${emoji}
-_Watashi wa ${config.botName.split(' - ')[0]} !_
+            
+            const isLong = commandArray.length > 10;
 
-Berikut adalah menu *${catName.toUpperCase()}* !
+            const subMenuText = `*${greeting},* @${m.sender.split('@')[0]}-sama ${emoji}
 
-📁 ${catName}
+> _[ 🗓️${formattedDate} - 🕓${time} WIB ]_
+> _[ ⏳${uptimeStr} - ⚡${latency}ms ]_
+
+_Watashi wa *${botName}*_, WhatsApp bot by ${config.ownerName}.
+Berikut adalah menu _\`${catName}\`_ !
+────────────────
+${isLong ? more : ''}
+\`📁 ${catName}\`
 ${cmdTree}
-> _か | ${config.botName} by ${config.ownerName} ☘️_`;
+> _${config.botName} by ${config.ownerName} ☘️_`;
 
-            await conn.sendMessage(m.chat, {
-                text: subMenuText,
+            await m.reply(subMenuText, { 
+                mentions: [m.sender],
                 contextInfo: {
+                    expiration: m.expiration,
                     externalAdReply: {
-                        title: `Category: ${catName}`,
-                        body: `Total: ${commands.length} Commands`,
-                        thumbnailUrl: config.thumbnail,
-                        sourceUrl: 'https://wa.me/' + config.ownerNumber,
+                        title: `Kategori: ${catName}`,
+                        body: `Mode: ${config.public ? 'Public' : 'Self'}`,
+                        thumbnailUrl: config.thumbnail, 
+                        sourceUrl: config.siteUrl,
                         mediaType: 1,
-                        renderLargerThumbnail: true
-                    },
-                    mentionedJid: [m.sender]
+                        renderLargerThumbnail: true 
+                    }
                 }
-            }, { quoted: m });
+            });
         }
     }
 };
